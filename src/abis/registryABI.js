@@ -52,8 +52,24 @@ module.exports = [
     "name": "challenges",
     "outputs": [
       {
-        "name": "",
+        "name": "challengeAddress",
         "type": "address"
+      },
+      {
+        "name": "listingHash",
+        "type": "bytes32"
+      },
+      {
+        "name": "challenger",
+        "type": "address"
+      },
+      {
+        "name": "deposit",
+        "type": "uint256"
+      },
+      {
+        "name": "resolved",
+        "type": "bool"
       }
     ],
     "payable": false,
@@ -83,16 +99,12 @@ module.exports = [
         "type": "address"
       },
       {
-        "name": "deposit",
+        "name": "unstakedDeposit",
         "type": "uint256"
       },
       {
         "name": "challengeID",
         "type": "uint256"
-      },
-      {
-        "name": "challenger",
-        "type": "address"
       }
     ],
     "payable": false,
@@ -503,6 +515,20 @@ module.exports = [
     "type": "function"
   },
   {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "challengeID",
+        "type": "uint256"
+      }
+    ],
+    "name": "allocateWinnerReward",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "constant": true,
     "inputs": [
       {
@@ -557,6 +583,63 @@ module.exports = [
     ],
     "payable": false,
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
+        "name": "_listingHash",
+        "type": "bytes32"
+      }
+    ],
+    "name": "challengeExists",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
+        "name": "_listingHash",
+        "type": "bytes32"
+      }
+    ],
+    "name": "challengeCanBeResolved",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "_listingHash",
+        "type": "bytes32"
+      }
+    ],
+    "name": "challengeAddr",
+    "outputs": [
+      {
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "nonpayable",
     "type": "function"
   }
 ]
