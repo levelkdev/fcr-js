@@ -56,6 +56,7 @@ module.exports = (token, LMSR, web3, address, defaultOptions) => {
 
   const updateStatus = async (sender, listingHash) => {
     const existingListing = await getListing(listingHash)
+
     if (existingListing.challengeID !== '0') {
       const challenge = await getChallenge(existingListing.challengeID)
       const challengeEnded = await challenge.ended()
@@ -107,6 +108,11 @@ module.exports = (token, LMSR, web3, address, defaultOptions) => {
     return listing
   }
 
+  const getListingHash = async (listingTitle) => {
+    const listingHashBytes32 = web3.utils.fromAscii(listingTitle)
+    return listingHashBytes32
+  }
+
   const getChallenge = async (challengeNonce) => {
     const challengeResp = await contract.methods.challenges(challengeNonce).call()
     const { challengeAddress } = challengeResp
@@ -146,6 +152,7 @@ module.exports = (token, LMSR, web3, address, defaultOptions) => {
     getChallenge,
     name,
     contract,
-    address
+    address,
+    getListingHash
   }
 }

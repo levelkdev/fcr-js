@@ -162,7 +162,6 @@ module.exports = (fcrToken, LMSR, web3, id, address, defaultOptions) => {
     const transactionSender = new TransactionSender()
 
     const stakeAmount = await contract.methods.stakeAmount().call()
-
     const approveTxResp = await fcrToken.approve(challenger, address, stakeAmount)
     transactionSender.add(approveTxResp[0].receipt, 'approve', fcrToken.address)
 
@@ -176,6 +175,16 @@ module.exports = (fcrToken, LMSR, web3, id, address, defaultOptions) => {
     return transactionSender.response()
   }
 
+  const close = async (buyer) => {
+    const transactionSender = new TransactionSender()
+    await transactionSender.send(
+      contract,
+      'close',
+      [],
+      _.extend({ from: buyer }, defaultOptions)
+    )
+  }
+
   const buyOutcome = async (buyer, outcome, amount) => {
     validateOutcome(outcome)
     const outcomeIndex = indexForOutcome(outcome)
@@ -186,21 +195,18 @@ module.exports = (fcrToken, LMSR, web3, id, address, defaultOptions) => {
     if (!isStarted) {
       throw new Error('challenge has not been started')
     }
-
     const isFunded = await contract.methods.isFunded().call()
     if (!isFunded) {
       throw new Error('challenge markets have not been funded')
     }
 
     const categoricalEvent = await getCategoricalEvent()
-
     const approveTxResp = await fcrToken.approve(
       buyer,
       categoricalEvent.options.address,
       amount
     )
     transactionSender.add(approveTxResp[0].receipt, 'approve', fcrToken.address)
-
     await transactionSender.send(
       categoricalEvent,
       'buyAllOutcomes',
@@ -210,10 +216,9 @@ module.exports = (fcrToken, LMSR, web3, id, address, defaultOptions) => {
 
     const decision = decisionForOutcome(outcome)
     const decisionMarket = await getDecisionMarket(decision)
-    const outcomeCost = await calculateOutcomeCost(outcome, amount)
-    const outcomeFee = await calculateOutcomeFee(outcome, amount)
+    const outcomeCost = parseInt(await calculateOutcomeCost(outcome, amount))
+    const outcomeFee = parseInt(await calculateOutcomeFee(outcome, amount))
     const totalOutcomeCost = outcomeCost + outcomeFee
-
     const decisionToken = await getDecisionToken(decision)
 
     const approveDecisionTokenTxResp = await decisionToken.approve(
@@ -229,7 +234,6 @@ module.exports = (fcrToken, LMSR, web3, id, address, defaultOptions) => {
 
     let outcomeTokenAmounts = [0, 0]
     outcomeTokenAmounts[outcomeIndex] = amount
-
     const collateralLimit = 0
 
     await transactionSender.send(
@@ -260,7 +264,7 @@ module.exports = (fcrToken, LMSR, web3, id, address, defaultOptions) => {
 
     const decision = decisionForOutcome(outcome)
     const decisionMarket = await getDecisionMarket(decision)
-    
+
     const outcomeToken = await getOutcomeToken(outcome)
     const outcomeTokenBalance = await outcomeToken.getBalance(seller)
 
@@ -297,7 +301,7 @@ module.exports = (fcrToken, LMSR, web3, id, address, defaultOptions) => {
 
     const categoricalEvent = await getCategoricalEvent()
     const decisionToken = await getDecisionToken(decision)
-    const decisionTokenBalance = await decisionToken.getBalance(seller)    
+    const decisionTokenBalance = await decisionToken.getBalance(seller)
 
     await transactionSender.send(
       categoricalEvent,
@@ -479,7 +483,6 @@ module.exports = (fcrToken, LMSR, web3, id, address, defaultOptions) => {
 
   const calculateOutcomeCost = async (outcome, amount) => {
     validateOutcome(outcome)
-
     const outcomeTokenIndex = indexForOutcome(outcome)
 
     const decisionMarket = await getDecisionMarket(
@@ -488,12 +491,10 @@ module.exports = (fcrToken, LMSR, web3, id, address, defaultOptions) => {
 
     let outcomeTokenAmounts = [0, 0]
     outcomeTokenAmounts[outcomeTokenIndex] = amount
-
     const outcomeCost = await LMSR.methods.calcNetCost(
       decisionMarket.options.address,
       outcomeTokenAmounts
     ).call()
-
     return outcomeCost
   }
 
@@ -505,7 +506,6 @@ module.exports = (fcrToken, LMSR, web3, id, address, defaultOptions) => {
     const decisionMarket = await getDecisionMarket(
       decisionForOutcome(outcome)
     )
-
     const outcomeMarginalPrice = await LMSR.methods.calcMarginalPrice(
       decisionMarket.options.address,
       outcomeTokenIndex
@@ -527,7 +527,7 @@ module.exports = (fcrToken, LMSR, web3, id, address, defaultOptions) => {
     const decisionMarket = await getDecisionMarket(decision)
     const averageLongPrice = await decisionMarket.methods.getAvgPrice().call()
 
-    return indexForOutcome(outcome) == 1 ? 
+    return indexForOutcome(outcome) == 1 ?
       averageLongPrice :
       (2 ** 64) - averageLongPrice
   }
@@ -595,6 +595,7 @@ module.exports = (fcrToken, LMSR, web3, id, address, defaultOptions) => {
     watchOutcomeTokenTrades,
     watchSetOutcome,
     address,
-    contract
+    contract,
+    close
   }
 }
