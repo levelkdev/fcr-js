@@ -1,9 +1,11 @@
 const _ = require('lodash')
 const registryABI = require('./abis/registryABI')
+const LMSRMarketMakerABI = require('./abis/LMSRMarketMakerABI')
+const dutchExchangeABI = require('./abis/dutchExchangeABI')
 const TransactionSender = require('./transactionSender')
 const challenge = require('./challenge')
 
-module.exports = (token, LMSR, web3, address, defaultOptions) => {
+module.exports = (token, futarchyChallengeFactory, web3, address, defaultOptions) => {
   if (!defaultOptions) defaultOptions = {}
 
   const contract = new web3.eth.Contract(registryABI, address)
@@ -87,6 +89,14 @@ module.exports = (token, LMSR, web3, address, defaultOptions) => {
     if (existingListing.challengeID !== '0') {
       throw new Error(`listing '${listingHash}' already has an active challenge`)
     }
+    
+    // check that there are enough auctions for the token pair to calc upper/lower bounds
+    const currentAuctionIndex = await getTokenPairAuctionIndex()
+    const numPricePoints = await futarchyChallengeFactory.methods.NUM_PRICE_POINTS().call()
+
+    if (currentAuctionIndex <= numPricePoints) {
+      throw new Error(`Not enough auctions for token pair. There are currently ${currentAuctionIndex} auctions and ${numPricePoints} auctions are needed`)
+    }
 
     const transactionSender = new TransactionSender()
     await transactionSender.send(
@@ -116,6 +126,9 @@ module.exports = (token, LMSR, web3, address, defaultOptions) => {
   const getChallenge = async (challengeNonce) => {
     const challengeResp = await contract.methods.challenges(challengeNonce).call()
     const { challengeAddress } = challengeResp
+    const lmsrMarketMakerAddress = 
+      await futarchyChallengeFactory.methods.lmsrMarketMaker().call()
+    const LMSR = new web3.eth.Contract(LMSRMarketMakerABI, lmsrMarketMakerAddress)
     return challenge(token, LMSR, web3, challengeNonce, challengeAddress, defaultOptions)
   }
 
@@ -140,6 +153,27 @@ module.exports = (token, LMSR, web3, address, defaultOptions) => {
   const name = async () => {
     const name = await contract.methods.name().call()
     return name
+  }
+
+  async function getTokenPairAuctionIndex () {
+    const dutchExchange = await getDutchExchange()
+    const tokenAddress = token.address
+    const comparatorTokenAddress = await getComparatorTokenAddress()
+    const auctionIndex = await dutchExchange.methods.getAuctionIndex(
+      tokenAddress,
+      comparatorTokenAddress
+    ).call()
+    return auctionIndex
+  }
+
+  async function getComparatorTokenAddress () {
+    const comparatorTokenAddress = futarchyChallengeFactory.methods.comparatorToken().call()
+    return comparatorTokenAddress
+  }
+
+  async function getDutchExchange () {
+    const dutchExchangeAddress = await futarchyChallengeFactory.methods.dutchExchange().call()
+    return new web3.eth.Contract(dutchExchangeABI, dutchExchangeAddress)
   }
 
   return {
