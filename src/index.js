@@ -4,6 +4,7 @@ const futarchyChallengeFactoryABI = require('./abis/futarchyChallengeFactoryABI'
 const decisions = require('./enums/decisions')
 const outcomes = require('./enums/outcomes')
 const outcomeTokens = require('./enums/outcomeTokens')
+const allEventsPromises = require('./allEventsPromises')
 
 module.exports = (web3, config) => {
 
@@ -24,15 +25,30 @@ module.exports = (web3, config) => {
     config.futarchyChallengeFactoryAddress
   )
 
+  const registryInstance = registry(
+    tokenInstance,
+    futarchyChallengeFactory,
+    web3,
+    config.registryAddress,
+    config.defaultOptions
+  )
+
+  const events = async () => {
+    const dutchExchange = await registryInstance.getDutchExchange()
+    const lmsr = await registryInstance.getLMSR()
+    return allEventsPromises({
+      Token: tokenInstance.contract,
+      Registry: registryInstance.contract,
+      FutarchyChallengeFactory: futarchyChallengeFactory,
+      DutchExchange: dutchExchange,
+      LMSR: lmsr
+    })
+  }
+
   return {
+    events,
     token: tokenInstance,
-    registry: registry(
-      tokenInstance,
-      futarchyChallengeFactory,
-      web3,
-      config.registryAddress,
-      config.defaultOptions
-    ),
+    registry: registryInstance,
     decisions,
     outcomes,
     outcomeTokens

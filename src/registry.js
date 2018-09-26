@@ -126,10 +126,14 @@ module.exports = (token, futarchyChallengeFactory, web3, address, defaultOptions
   const getChallenge = async (challengeNonce) => {
     const challengeResp = await contract.methods.challenges(challengeNonce).call()
     const { challengeAddress } = challengeResp
+    const LMSR = await getLMSR()
+    return challenge(token, LMSR, web3, challengeNonce, challengeAddress, defaultOptions)
+  }
+
+  const getLMSR = async () => {
     const lmsrMarketMakerAddress = 
       await futarchyChallengeFactory.methods.lmsrMarketMaker().call()
-    const LMSR = new web3.eth.Contract(LMSRMarketMakerABI, lmsrMarketMakerAddress)
-    return challenge(token, LMSR, web3, challengeNonce, challengeAddress, defaultOptions)
+    return new web3.eth.Contract(LMSRMarketMakerABI, lmsrMarketMakerAddress)
   }
 
   const getAllChallenges = async () => {
@@ -184,6 +188,8 @@ module.exports = (token, futarchyChallengeFactory, web3, address, defaultOptions
     getAllChallenges,
     getListing,
     getChallenge,
+    getDutchExchange,
+    getLMSR,
     name,
     contract,
     address,
