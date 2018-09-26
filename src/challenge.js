@@ -10,6 +10,7 @@ const decisions = require('./enums/decisions')
 const outcomes = require('./enums/outcomes')
 const challengeStatuses = require('./enums/challengeStatuses')
 const token = require('./token')
+const allEventsPromises = require('./allEventsPromises')
 
 function decisionForOutcome (outcome) {
   return outcome.indexOf('ACCEPTED') > -1 ? 'ACCEPTED' : 'DENIED'
@@ -557,6 +558,36 @@ module.exports = (fcrToken, LMSR, web3, id, address, defaultOptions) => {
     )
   }
 
+  const events = async () => {
+    const futarchyOracle = await getFutarchyOracle()
+    const categoricalEvent = await getCategoricalEvent()
+    const decisionMarket_ACCEPTED = await getDecisionMarket('ACCEPTED')
+    const decisionMarket_DENIED = await getDecisionMarket('DENIED')
+    const decisionEvent_ACCEPTED = await getDecisionEvent('ACCEPTED')
+    const decisionEvent_DENIED = await getDecisionEvent('DENIED')
+    const decisionToken_ACCEPTED = await getDecisionToken('ACCEPTED')
+    const decisionToken_DENIED = await getDecisionToken('DENIED')
+    const outcomeToken_LONG_ACCEPTED = await getOutcomeToken('LONG_ACCEPTED')
+    const outcomeToken_SHORT_ACCEPTED = await getOutcomeToken('SHORT_ACCEPTED')
+    const outcomeToken_LONG_DENIED = await getOutcomeToken('LONG_DENIED')
+    const outcomeToken_SHORT_DENIED = await getOutcomeToken('SHORT_DENIED')
+    return allEventsPromises({
+      Challenge: contract,
+      FutarchyOracle: futarchyOracle,
+      CategoricalEvent: categoricalEvent,
+      StandardMarketWithPriceLogger_ACCEPTED: decisionMarket_ACCEPTED,
+      StandardMarketWithPriceLogger_DENIED: decisionMarket_DENIED,
+      ScalarEvent_ACCEPTED: decisionEvent_ACCEPTED,
+      ScalarEvent_DENIED: decisionEvent_DENIED,
+      CollateralToken_ACCEPTED: decisionToken_ACCEPTED.contract,
+      CollateralToken_DENIED: decisionToken_DENIED.contract,
+      OutcomeToken_LONG_ACCEPTED: outcomeToken_LONG_ACCEPTED.contract,
+      OutcomeToken_SHORT_ACCEPTED: outcomeToken_SHORT_ACCEPTED.contract,
+      OutcomeToken_LONG_DENIED: outcomeToken_LONG_DENIED.contract,
+      OutcomeToken_SHORT_DENIED: outcomeToken_SHORT_DENIED.contract
+    })
+  }
+
   return {
     ID: id,
     start,
@@ -594,6 +625,7 @@ module.exports = (fcrToken, LMSR, web3, id, address, defaultOptions) => {
     watchFunded: watchEventFn(contract, '_Funded'),
     watchOutcomeTokenTrades,
     watchSetOutcome,
+    events,
     address,
     contract,
     close
