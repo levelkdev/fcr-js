@@ -16,25 +16,11 @@ module.exports = [
   {
     "constant": true,
     "inputs": [],
-    "name": "owner",
+    "name": "dutchExchange",
     "outputs": [
       {
         "name": "",
         "type": "address"
-      }
-    ],
-    "payable": false,
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "constant": true,
-    "inputs": [],
-    "name": "ipfsHash",
-    "outputs": [
-      {
-        "name": "",
-        "type": "bytes"
       }
     ],
     "payable": false,
@@ -58,6 +44,34 @@ module.exports = [
   {
     "constant": true,
     "inputs": [],
+    "name": "comparatorToken",
+    "outputs": [
+      {
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "token",
+    "outputs": [
+      {
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
     "name": "resolutionDate",
     "outputs": [
       {
@@ -72,16 +86,20 @@ module.exports = [
   {
     "inputs": [
       {
-        "name": "_owner",
+        "name": "_resolutionDate",
+        "type": "uint256"
+      },
+      {
+        "name": "_dutchExchange",
         "type": "address"
       },
       {
-        "name": "_ipfsHash",
-        "type": "bytes"
+        "name": "_token",
+        "type": "address"
       },
       {
-        "name": "_resolutionDate",
-        "type": "uint256"
+        "name": "_comparatorToken",
+        "type": "address"
       }
     ],
     "payable": false,
@@ -102,12 +120,7 @@ module.exports = [
   },
   {
     "constant": false,
-    "inputs": [
-      {
-        "name": "_outcome",
-        "type": "int256"
-      }
-    ],
+    "inputs": [],
     "name": "setOutcome",
     "outputs": [],
     "payable": false,

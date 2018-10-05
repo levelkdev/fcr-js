@@ -4,7 +4,7 @@ const futarchyOracleABI = require('./abis/futarchyOracleABI')
 const categoricalEventABI = require('./abis/categoricalEventABI')
 const scalarEventABI = require('./abis/scalarEventABI')
 const standardMarketWithPriceLoggerABI = require('./abis/standardMarketWithPriceLoggerABI')
-const centralizedTimedOracleABI = require('./abis/centralizedTimedOracleABI')
+const scalarPriceOracleABI = require('./abis/scalarPriceOracleABI')
 const TransactionSender = require('./transactionSender')
 const decisions = require('./enums/decisions')
 const outcomes = require('./enums/outcomes')
@@ -341,15 +341,21 @@ module.exports = (fcrToken, LMSR, web3, id, address, defaultOptions) => {
     return transactionSender.response()
   }
 
-  const resolveDecisionMarkets = async (sender, price) => {
+  const resolveDecisionMarkets = async (sender) => {
     const priceOracle = await getPriceOracle()
 
     const transactionSender = new TransactionSender()
 
+    const resolutionDate = await priceOracle.methods.resolutionDate().call()
+    const currentBlocktime = (await web3.eth.getBlock('latest')).timestamp
+    if (resolutionDate <= currentBlocktime) {
+      throw new Error(`resolutionDate (${resolutionDate}) is less than or equal to current block time (${currentBlocktime})`)
+    }
+
     await transactionSender.send(
       priceOracle,
       'setOutcome',
-      [ price ],
+      [],
       _.extend({ from: sender }, defaultOptions)
     )
 
@@ -468,7 +474,7 @@ module.exports = (fcrToken, LMSR, web3, id, address, defaultOptions) => {
   const getPriceOracle = async () => {
     const decisionEvent = await getDecisionEvent('ACCEPTED')
     const oracleAddress = await decisionEvent.methods.oracle().call()
-    return new web3.eth.Contract(centralizedTimedOracleABI, oracleAddress)
+    return new web3.eth.Contract(scalarPriceOracleABI, oracleAddress)
   }
 
   const getDecisionOutcome = async (decision) => {
