@@ -368,8 +368,8 @@ module.exports = ({
 
     const resolutionDate = await priceOracle.methods.resolutionDate().call()
     const currentBlocktime = (await web3.eth.getBlock('latest')).timestamp
-    if (resolutionDate <= currentBlocktime) {
-      throw new Error(`resolutionDate (${resolutionDate}) is less than or equal to current block time (${currentBlocktime})`)
+    if (resolutionDate > currentBlocktime) {
+      throw new Error(`resolutionDate (${resolutionDate}) is greater than current block time (${currentBlocktime})`)
     }
 
     await transactionSender.send(
