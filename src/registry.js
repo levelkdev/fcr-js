@@ -127,7 +127,15 @@ module.exports = (token, futarchyChallengeFactory, web3, address, defaultOptions
     const challengeResp = await contract.methods.challenges(challengeNonce).call()
     const { challengeAddress } = challengeResp
     const LMSR = await getLMSR()
-    return challenge(token, LMSR, web3, challengeNonce, challengeAddress, defaultOptions)
+    return challenge({
+      fcrToken: token,
+      registryContract: contract,
+      LMSR,
+      web3,
+      id: challengeNonce,
+      address: challengeAddress,
+      defaultOptions
+    })
   }
 
   const getLMSR = async () => {

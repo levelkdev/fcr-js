@@ -34,12 +34,6 @@ function validateOutcome (outcome) {
   }
 }
 
-async function getBlockTime(web3) {
-  const blockNumber = await web3.eth.getBlockNumber()
-  const block = await web3.eth.getBlock(blockNumber)
-  return block.timestamp
-}
-
 // TODO: DRY this up
 function watchEventFn (contract, eventName) {
   return (filter, callback, errCallback) => {
@@ -68,7 +62,15 @@ function watchEventFn (contract, eventName) {
   }
 }
 
-module.exports = (fcrToken, LMSR, web3, id, address, defaultOptions) => {
+module.exports = ({
+  fcrToken,
+  registryContract,
+  LMSR,
+  web3,
+  id,
+  address,
+  defaultOptions
+}) => {
   if (!defaultOptions) defaultOptions = {}
 
   const contract = new web3.eth.Contract(challengeABI, address)
@@ -314,7 +316,7 @@ module.exports = (fcrToken, LMSR, web3, id, address, defaultOptions) => {
     return transactionSender.response()
   }
 
-  const setOutcome = async (sender) => {
+  const resolveFutarchyDecision = async (sender) => {
     const transactionSender = new TransactionSender()
 
     const futarchyOracle = await getFutarchyOracle()
@@ -323,18 +325,36 @@ module.exports = (fcrToken, LMSR, web3, id, address, defaultOptions) => {
       throw new Error('challenge outcome has already been set')
     }
 
-    // TEMP: remove for workshop
-    //
-    // const resolutionDate = await futarchyTradingResolutionDate()
-    // const blockTime = await getBlockTime(web3)
-    // if (blockTime < resolutionDate) {
-    //   throw new Error('challenge decision period is still active')
-    // }
+    const startDate = parseInt(await getDecisionMarketStart('ACCEPTED'))
+    const tradingPeriod = parseInt(await futarchyOracle.methods.tradingPeriod().call())
+    const now = parseInt((await web3.eth.getBlock('latest')).timestamp)
+
+    if (startDate + tradingPeriod >= now) {
+      throw new Error(`Futarchy decision cannot be resolved because trading period is not over. Trading ends at timestamp ${startDate + tradingPeriod}, but current blocktime is ${now}`)
+    }
 
     await transactionSender.send(
       futarchyOracle,
       'setOutcome',
       [],
+      _.extend({ from: sender }, defaultOptions)
+    )
+
+    const categoricalEvent = await getCategoricalEvent()
+
+    await transactionSender.send(
+      categoricalEvent,
+      'setOutcome',
+      [],
+      _.extend({ from: sender }, defaultOptions)
+    )
+
+    const listingHash = await getListingHash()
+
+    await transactionSender.send(
+      registryContract,
+      'updateStatus',
+      [ listingHash ],
       _.extend({ from: sender }, defaultOptions)
     )
 
@@ -348,8 +368,8 @@ module.exports = (fcrToken, LMSR, web3, id, address, defaultOptions) => {
 
     const resolutionDate = await priceOracle.methods.resolutionDate().call()
     const currentBlocktime = (await web3.eth.getBlock('latest')).timestamp
-    if (resolutionDate <= currentBlocktime) {
-      throw new Error(`resolutionDate (${resolutionDate}) is less than or equal to current block time (${currentBlocktime})`)
+    if (resolutionDate > currentBlocktime) {
+      throw new Error(`resolutionDate (${resolutionDate}) is greater than current block time (${currentBlocktime})`)
     }
 
     await transactionSender.send(
@@ -443,6 +463,12 @@ module.exports = (fcrToken, LMSR, web3, id, address, defaultOptions) => {
     return new web3.eth.Contract(standardMarketWithPriceLoggerABI, standardMarketAddress)
   }
 
+  const getDecisionMarketStart = async (decision) => {
+    const decisionMarket = await getDecisionMarket(decision)
+    const startDate = await decisionMarket.methods.startDate().call()
+    return startDate
+  }
+
   const getDecisionEvent = async (decision) => {
     const decisionMarket = await getDecisionMarket(decision)
     const decisionEventAddress = await decisionMarket.methods.eventContract().call()
@@ -486,6 +512,11 @@ module.exports = (fcrToken, LMSR, web3, id, address, defaultOptions) => {
     } else {
       return null
     }
+  }
+
+  const getListingHash = async () => {
+    const challengeVals = await registryContract.methods.challenges(id).call()
+    return challengeVals[1]
   }
 
   const calculateOutcomeCost = async (outcome, amount) => {
@@ -610,19 +641,21 @@ module.exports = (fcrToken, LMSR, web3, id, address, defaultOptions) => {
     conditionalTradingResolutionDate,
     buyOutcome,
     sellOutcome,
-    setOutcome,
     isOutcomeSet,
+    resolveFutarchyDecision,
     resolveDecisionMarkets,
     redeemAllWinnings,
     getFutarchyOracle,
     getCategoricalEvent,
     getDecisionMarket,
+    getDecisionMarketStart,
     getDecisionEvent,
     getDecisionToken,
     getOutcomeToken,
     getOutcomeTokenBalance,
     getPriceOracle,
     getDecisionOutcome,
+    getListingHash,
     calculateOutcomeCost,
     calculateOutcomeMarginalPrice,
     calculateOutcomeFee,
