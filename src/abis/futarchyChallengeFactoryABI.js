@@ -182,6 +182,18 @@ module.exports = [
     "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "name": "didit",
+        "type": "bool"
+      }
+    ],
+    "name": "DebugCreateChallenge",
+    "type": "event"
+  },
+  {
     "constant": false,
     "inputs": [
       {
@@ -209,4 +221,3 @@ module.exports = [
     "type": "function"
   }
 ]
-
