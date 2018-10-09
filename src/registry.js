@@ -56,6 +56,34 @@ module.exports = (token, futarchyChallengeFactory, web3, address, defaultOptions
     return transactionSender.response()
   }
 
+  const exit = async (listingOwner, listingTitle) => {
+    const listing = await getListing(listingTitle)
+    if (listing.owner.toLowerCase() !== listingOwner) {
+      throw new Error(`Listing can only be exited by the owner. The listing '${listingTitle}' is owned by ${listing.owner}, and cannot be exited by ${listingOwner}.`)
+    }
+    if (!listing.whitelisted) {
+      throw new Error(`Listing can only be exited if it is whitelisted. The listing '${listingTitle}' is not whitelisted.`)
+    }
+
+    const listingHash = web3.utils.fromAscii(listingTitle)
+
+    const challengeExists = await contract.methods.challengeExists(listingHash).call()
+    if (challengeExists) {
+      throw new Error(`Listing can only be exited if it does not have an active challenge. The listing '${listingTitle}' has an active challenge`)
+    }
+
+    const transactionSender = new TransactionSender()
+
+    await transactionSender.send(
+      contract,
+      'exit',
+      [ listingHash ],
+      _.extend({ from: listingOwner }, defaultOptions)
+    )
+
+    return transactionSender.response()
+  }
+
   const updateStatus = async (sender, listingHash) => {
     const existingListing = await getListing(listingHash)
 
@@ -191,6 +219,7 @@ module.exports = (token, futarchyChallengeFactory, web3, address, defaultOptions
   return {
     watchEvent,
     apply,
+    exit,
     updateStatus,
     createChallenge,
     getAllChallenges,
