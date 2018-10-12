@@ -178,14 +178,29 @@ module.exports = ({
     return transactionSender.response()
   }
 
-  const close = async (buyer) => {
+  const finalize = async (sender) => {
     const transactionSender = new TransactionSender()
+
+    const marketsAreClosed = await contract.methods.marketsAreClosed().call()
+    if (marketsAreClosed) {
+      throw new Error('challenge markets have already been closed')
+    }
+
     await transactionSender.send(
       contract,
       'close',
       [],
-      _.extend({ from: buyer }, defaultOptions)
+      _.extend({ from: sender }, defaultOptions)
     )
+
+    await transactionSender.send(
+      registryContract,
+      'allocateWinnerReward',
+      [ id ],
+      _.extend({ from: sender }, defaultOptions)
+    )
+
+    return transactionSender.response()
   }
 
   const buyOutcome = async (buyer, outcome, amount) => {
@@ -361,7 +376,7 @@ module.exports = ({
     return transactionSender.response()
   }
 
-  const resolveDecisionMarkets = async (sender) => {
+  const resolveFutarchyMarkets = async (sender) => {
     const priceOracle = await getPriceOracle()
 
     const transactionSender = new TransactionSender()
@@ -381,7 +396,6 @@ module.exports = ({
 
     const acceptedEvent = await getDecisionEvent('ACCEPTED')
     const deniedEvent = await getDecisionEvent('DENIED')
-    const categoricalEvent = await getCategoricalEvent()
 
     await transactionSender.send(
       acceptedEvent,
@@ -392,13 +406,6 @@ module.exports = ({
 
     await transactionSender.send(
       deniedEvent,
-      'setOutcome',
-      [],
-      _.extend({ from: sender }, defaultOptions)
-    )
-
-    await transactionSender.send(
-      categoricalEvent,
       'setOutcome',
       [],
       _.extend({ from: sender }, defaultOptions)
@@ -630,6 +637,7 @@ module.exports = ({
     start,
     started,
     fund,
+    finalize,
     funded,
     ended,
     passed,
@@ -643,7 +651,7 @@ module.exports = ({
     sellOutcome,
     isOutcomeSet,
     resolveFutarchyDecision,
-    resolveDecisionMarkets,
+    resolveFutarchyMarkets,
     redeemAllWinnings,
     getFutarchyOracle,
     getCategoricalEvent,
@@ -666,7 +674,6 @@ module.exports = ({
     watchSetOutcome,
     events,
     address,
-    contract,
-    close
+    contract
   }
 }
